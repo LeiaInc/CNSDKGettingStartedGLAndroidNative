@@ -25,20 +25,18 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_initializeCNSDK(
     pia.androidContext = context;
     g_sdk->InitializePlatform(pia);
 
-    try {
-        // Initialize SDK.
-        g_sdk->Initialize(nullptr); /// <----- crashes in here but I can't step into it.
+    // Initialize SDK.
+    g_sdk->Initialize(nullptr); /// <----- crashes in here calling the BaseServiceConnection class constructor
 
-        // Create interlacer.
-        //g_interlacer = g_sdk->CreateNewThreadedInterlacer();
+    // Create interlacer.
+    leia::sdk::ThreadedInterlacerInitArgs tiia = {};
+    tiia.graphicsAPI = leia::sdk::GraphicsAPI::OpenGL;
+    tiia.useMegaTextureForViews = true;
+    g_interlacer = g_sdk->CreateNewThreadedInterlacer(tiia);
 
-        g_interlacer->InitializeOpenGL(nullptr, leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK);
-    }
-    catch(std::exception& e)
-    {
-        int xxx;
-        xxx=3;
-    }
+    // Initialize OpenGL.
+    g_interlacer->InitializeOpenGL(nullptr, leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK);
+
     return true;
 }
 
@@ -50,3 +48,10 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getRenderTargetFor
 
     return g_interlacer->GetRenderTargetForView(viewIndex);
 }
+
+// todo: getRenderTargetWidth()
+// todo: getRenderTargetHeight()
+// todo: getConvergedPerspectiveViewInfo()
+// todo: doPostProcess()
+// todo: getConvergenceDistance()
+// todo: shutdownCNSDK()
