@@ -33,7 +33,7 @@ target_link_libraries( # Specifies the target library.
         PRIVATE
 
         # link to CNSDK library
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../CNSDK/libs/native/arm64-v8a/libleiaSDK.so"
+        "${CNSDK_DIR}/lib/jni/${CMAKE_ANDROID_ARCH_ABI}/libleiaSDK.so"
 
         # Link to logging library
         ${log-lib})
@@ -42,5 +42,5 @@ target_link_libraries( # Specifies the target library.
 target_include_directories(
         cnsdkgettingstartedglandroidnative
         PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../CNSDK/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../CNSDK/include/third_party")
+        "${CNSDK_DIR}/include"
+        "${CNSDK_DIR}/include/third_party")

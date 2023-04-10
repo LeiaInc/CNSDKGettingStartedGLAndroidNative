@@ -15,7 +15,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags ''
+                arguments "-DCNSDK_DIR=${project.cnsdkPath}"
             }
         }
 
@@ -67,7 +67,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.4.0'
 
     // Use CNSDK AAR from local project.
-    implementation files("${projectDir}/../CNSDK/aar/sdk-final-aar-debug.aar")
+    implementation files(project.cnsdkAar)
 }
 
 clean {

@@ -4,6 +4,26 @@ plugins {
     id 'com.android.library' version '7.2.0' apply false
 }
 
+project.ext {
+    cnsdkArchive = "cnsdk-android-${project.cnsdkVersion}.zip"
+    cnsdkPath = "${project.buildDir}/cnsdk"
+    println("cnsdkPath: ${cnsdkPath}")
+    // cnksd is distributed as an archive
+    copy {
+        from zipTree("cnsdk-android-${project.cnsdkVersion}.zip")
+        include 'android/**/*'
+        include 'include/**/*'
+        into "${cnsdkPath}"
+    }
+    // Native samples link to shared libraries from cnsdk aar
+    cnsdkAar = "${cnsdkPath}/android/sdk-faceTrackingService-release-${project.cnsdkVersion}.aar"
+    copy {
+        from zipTree(cnsdkAar)
+        include 'jni/*/*.so'
+        into "${cnsdkPath}/lib"
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
