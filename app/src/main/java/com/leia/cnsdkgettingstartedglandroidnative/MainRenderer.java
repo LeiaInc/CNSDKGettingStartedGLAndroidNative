@@ -20,7 +20,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     MainActivity activity = null;
     private FloatBuffer vertexBuffer = null;
     private int program = 0;
-    private boolean initOk = false;
+    private boolean internalInitOk = false;
 
     private final int vertexCount = 3;
     private final int vertexStride = 3 * 4;// xyz * sizeof(float)
@@ -48,47 +48,65 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         this.activity = activity;
     }
 
-    void init() {
-        // Create GL resources for rendering...
+    boolean doInternalInit() {
 
-        ByteBuffer bb = ByteBuffer.allocateDirect(triangleCoords.length * 4);
-        bb.order(ByteOrder.nativeOrder());
+        if (!internalInitOk) {
+            ByteBuffer bb = ByteBuffer.allocateDirect(triangleCoords.length * 4);
+            bb.order(ByteOrder.nativeOrder());
 
-        vertexBuffer = bb.asFloatBuffer();
-        vertexBuffer.put(triangleCoords);
-        vertexBuffer.position(0);
+            vertexBuffer = bb.asFloatBuffer();
+            vertexBuffer.put(triangleCoords);
+            vertexBuffer.position(0);
 
-        int vertexShader = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER);
-        GLES20.glShaderSource(vertexShader, vertexShaderCode);
-        GLES20.glCompileShader(vertexShader);
+            int vertexShader = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER);
+            GLES20.glShaderSource(vertexShader, vertexShaderCode);
+            GLES20.glCompileShader(vertexShader);
 
-        int fragmentShader = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER);
-        GLES20.glShaderSource(fragmentShader, fragmentShaderCode);
-        GLES20.glCompileShader(fragmentShader);
+            int fragmentShader = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER);
+            GLES20.glShaderSource(fragmentShader, fragmentShaderCode);
+            GLES20.glCompileShader(fragmentShader);
 
-        program = GLES20.glCreateProgram();
-        GLES20.glAttachShader(program, vertexShader);
-        GLES20.glAttachShader(program, fragmentShader);
-        GLES20.glLinkProgram(program);
-        GLES20.glDeleteShader(vertexShader);
-        GLES20.glDeleteShader(fragmentShader);
+            program = GLES20.glCreateProgram();
+            GLES20.glAttachShader(program, vertexShader);
+            GLES20.glAttachShader(program, fragmentShader);
+            GLES20.glLinkProgram(program);
+            GLES20.glDeleteShader(vertexShader);
+            GLES20.glDeleteShader(fragmentShader);
+
+            internalInitOk = true;
+        }
+
+        return internalInitOk;
+    }
+
+    boolean doDeferredInitialization()
+    {
+        // Initialize CNSDK.
+        if (!activity.doCNSDKInit())
+            return false;
+
+        // Initialize graphics used with CNSDK.
+        if (!activity.doGraphicsInit())
+            return false;
+
+        // Initialize our internal resources.
+        if (!doInternalInit())
+            return false;
+
+        // Ready to use CNSDK.
+        return true;
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
 
-        // Deferred init.
-        if (!initOk)
-        {
-            init();
-            activity.initializeCNSDK(null);
-            initOk = true;
-        }
+        if (!doDeferredInitialization())
+            return;
 
         // Render frame.
         float green = (float)((System.currentTimeMillis() / 1000.0) % 1.0);
 
-        int renderTarget = 0;//activity.getRenderTargetForView(0);
+        int renderTarget = activity.getRenderTargetForView(0);
         int renderTargetWidth = 1280; // todo: add JNI call to get this
         int renderTargetHeight = 720; // todo: add JNI call to get this
         int convergenceDistance = 500; // todo: add JNI call to get this
@@ -152,7 +170,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
         GLES20.glViewport(Viewport.get(0), Viewport.get(1), Viewport.get(2), Viewport.get(3));
 
-		// pLeiaInterlacer->DoPostProcess(windowWidth, windowHeight, false, 0); todo: add JNI call for this.
+        activity.doPostProcess(windowWidth, windowHeight);
     }
 
     @Override

@@ -7,37 +7,64 @@
 #include "leia/sdk/debugMenu.hpp"
 #include "leia/common/platform.hpp"
 
-leia::sdk::ILeiaSDK* g_sdk = nullptr;
-leia::sdk::IThreadedInterlacer* g_interlacer = nullptr;
+// Global variables
+leia::sdk::ILeiaSDK*            g_sdk              = nullptr;
+leia::sdk::IThreadedInterlacer* g_interlacer       = nullptr;
+bool                            g_isCNSDKInitOk    = false;
+bool                            g_isGraphicsInitOk = false;
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_initializeCNSDK(
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doCNSDKInit(
         JNIEnv* env,
-        jobject activity,
-        jobject context) {
+        jobject activity) {
 
-    // Create SDK.
-    g_sdk = leia::sdk::CreateLeiaSDK();
+    // If the CNSDK hasn't been initialized yet.
+    if (!g_isCNSDKInitOk) {
 
-    // Initialize Platform.
-    leia::PlatformInitArgs pia = {};
-    pia.androidActivity = activity;
-    pia.androidContext = context;
-    g_sdk->InitializePlatform(pia);
+        // Create SDK.
+        g_sdk = leia::sdk::CreateLeiaSDK();
 
-    // Initialize SDK.
-    g_sdk->Initialize(nullptr); /// <----- crashes in here calling the BaseServiceConnection class constructor
+        // Initialize Platform.
+        leia::PlatformInitArgs pia = {};
+        pia.androidActivity = activity;
+        g_sdk->InitializePlatform(pia);
 
-    // Create interlacer.
-    leia::sdk::ThreadedInterlacerInitArgs tiia = {};
-    tiia.graphicsAPI = leia::sdk::GraphicsAPI::OpenGL;
-    tiia.useMegaTextureForViews = true;
-    g_interlacer = g_sdk->CreateNewThreadedInterlacer(tiia);
+        // Initialize SDK.
+        g_sdk->Initialize(nullptr);
 
-    // Initialize OpenGL.
-    g_interlacer->InitializeOpenGL(nullptr, leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK);
+        // Create interlacer.
+        leia::sdk::ThreadedInterlacerInitArgs tiia = {};
+        tiia.graphicsAPI = leia::sdk::GraphicsAPI::OpenGL;
+        tiia.useMegaTextureForViews = true;
+        g_interlacer = g_sdk->CreateNewThreadedInterlacer(tiia);
+
+        // CNSDK initialization is complete.
+        g_isCNSDKInitOk = true;
+    }
 
     return true;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doGraphicsInit(
+        JNIEnv* env,
+        jobject activity) {
+
+    // If we havn't initialized the graphics yet.
+    if (!g_isGraphicsInitOk) {
+
+        // Wait for CNSDK to be initialized.
+        if (g_sdk->IsInitialized()) {
+
+            // Initialize graphics.
+            g_interlacer->InitializeOpenGL(nullptr, leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK);
+
+            // Graphics initialization complete.
+            g_isGraphicsInitOk = true;
+        }
+    }
+
+    return g_isGraphicsInitOk;
 }
 
 extern "C" JNIEXPORT jint JNICALL
@@ -47,6 +74,17 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getRenderTargetFor
         jint viewIndex) {
 
     return g_interlacer->GetRenderTargetForView(viewIndex);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doPostProcess(
+        JNIEnv* env,
+        jobject activity,
+        int width,
+        int height) {
+
+    if (g_interlacer->IsOnSameThread(std::this_thread::get_id()))
+        g_interlacer->DoPostProcess(width, height, false, 0);
 }
 
 // todo: getRenderTargetWidth()

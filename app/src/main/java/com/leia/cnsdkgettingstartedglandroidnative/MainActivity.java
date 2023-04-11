@@ -9,7 +9,7 @@ import com.leia.sdk.LeiaSDK;
 
 import com.leia.cnsdkgettingstartedglandroidnative.databinding.ActivityMainBinding;
 
-public class MainActivity extends AppCompatActivity {//} implements LeiaSDK.Delegate {
+public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'cnsdkgettingstartedglandroidnative' library on application startup.
     static {
@@ -32,32 +32,9 @@ public class MainActivity extends AppCompatActivity {//} implements LeiaSDK.Dele
         mainView = (MainView) findViewById(R.id.mainView);
         mainView.setRenderer(mainRenderer);
     }
-/*
-    @Override
-    protected void onResume() {
-        super.onResume();
-    }
 
-    public void didInitialize(LeiaSDK leiaSDK) {
-        //this.leiaSDK = leiaSDK;
-        leiaSDK.enableBacklight(true);
-    }
-
-    public void onFaceTrackingStarted(LeiaSDK leiaSDK) {
-        //Log.i(LogTag, "onFaceTrackingStarted");
-    }
-
-    public void onFaceTrackingStopped(LeiaSDK leiaSDK) {
-        //Log.i(LogTag, "onFaceTrackingStopped");
-    }
-
-    public void onFaceTrackingFatalError(LeiaSDK leiaSDK) {
-        LeiaSDK.FaceTrackingFatalError fatalError = leiaSDK.isFaceTrackingInFatalError();
-        //if (fatalError != null)
-          //  Log.e(LogTag, String.format("Face tracking fatal error: %s (%d)", fatalError.message, fatalError.code));
-    }
-*/
-    public native boolean initializeCNSDK(Object context);
+    public native boolean doCNSDKInit();
+    public native boolean doGraphicsInit();
     public native int getRenderTargetForView(int viewIndex);
-    public boolean isCNSDKInitialized = false;
+    public native void doPostProcess(int width, int height);
 }
