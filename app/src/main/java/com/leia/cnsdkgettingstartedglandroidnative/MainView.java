@@ -31,8 +31,10 @@ public class MainView extends GLSurfaceView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (mainActivity.processGuiMotionInput(event)) // invalid thread.
+        if (mainActivity.isGuiVisible()) {
+            queueEvent(() -> mainActivity.processGuiMotionInput(event));
             return true;
+        }
         return super.onTouchEvent(event);
     }
 }

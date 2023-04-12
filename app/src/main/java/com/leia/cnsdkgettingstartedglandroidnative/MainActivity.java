@@ -60,4 +60,5 @@ public class MainActivity extends AppCompatActivity {
     public native int getViewWidth();
     public native int getViewHeight();
     public native boolean processGuiMotionInput(MotionEvent motionEvent);
+    public native boolean isGuiVisible();
 }

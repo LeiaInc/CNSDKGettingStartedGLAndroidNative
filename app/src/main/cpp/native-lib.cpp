@@ -216,3 +216,13 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_processGuiMotionIn
     }
     return false;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_isGuiVisible(
+        JNIEnv* env,
+        jobject activity)
+{
+    if (g_interlacer != nullptr)
+        return g_interlacer->IsGuiVisible();
+    return false;
+}
