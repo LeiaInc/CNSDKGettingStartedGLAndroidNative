@@ -7,24 +7,17 @@
 #include "leia/sdk/debugMenu.hpp"
 #include "leia/common/platform.hpp"
 
-struct ViewInfo
-{
-    float viewPos[3];
-    float viewProjectionMatrix[16];
-    float viewFieldOfView;
-    float viewShearX;
-    float viewShearY;
-};
-
 // Global variables
-leia::sdk::ILeiaSDK*            g_sdk              = nullptr;
-leia::sdk::IThreadedInterlacer* g_interlacer       = nullptr;
-bool                            g_isCNSDKInitOk    = false;
-bool                            g_isGraphicsInitOk = false;
-ViewInfo                        g_viewInfo         = {};
-int                             g_viewWidth        = 0;
-int                             g_viewHeight       = 0;
-bool                            g_showGUI          = true;
+leia::sdk::ILeiaSDK*            g_sdk                  = nullptr;
+leia::sdk::IThreadedInterlacer* g_interlacer           = nullptr;
+bool                            g_isCNSDKInitOk        = false;
+bool                            g_isGraphicsInitOk     = false;
+bool                            g_showGUI              = true;
+glm::vec3                       g_viewPos              = {};
+glm::mat4                       g_viewProjectionMatrix = {};
+float                           g_viewFieldOfView      = 0.0f;
+float                           g_viewShearX           = 0.0f;
+float                           g_viewShearY           = 0.0f;
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doCNSDKInit(
@@ -124,9 +117,6 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_calculateConverged
         float nearPlane,
         float farPlane)
 {
-    glm::vec3 viewPos = {};
-    glm::mat4 viewProjectionMatrix = {};
-
     g_interlacer->GetConvergedPerspectiveViewInfo
     (
         viewIndex,
@@ -137,18 +127,12 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_calculateConverged
         aspectRatio,
         nearPlane,
         farPlane,
-        &viewPos,
-        &viewProjectionMatrix,
-        &g_viewInfo.viewFieldOfView,
-        &g_viewInfo.viewShearX,
-        &g_viewInfo.viewShearY
+        &g_viewPos,
+        &g_viewProjectionMatrix,
+        &g_viewFieldOfView,
+        &g_viewShearX,
+        &g_viewShearY
     );
-
-    g_viewInfo.viewPos[0] = viewPos[0];
-    g_viewInfo.viewPos[1] = viewPos[1];
-    g_viewInfo.viewPos[2] = viewPos[2];
-    for (int i=0; i<16; i++)
-        g_viewInfo.viewProjectionMatrix[i] = viewProjectionMatrix[i/4][i%4];
 }
 
 extern "C" JNIEXPORT jfloat JNICALL
@@ -157,7 +141,7 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getConvergedPerspe
         jobject activity,
         int elementIndex)
 {
-    return g_viewInfo.viewPos[elementIndex];
+    return g_viewPos[elementIndex];
 }
 
 extern "C" JNIEXPORT jfloat JNICALL
@@ -166,7 +150,7 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getConvergedPerspe
         jobject activity,
         int elementIndex)
 {
-    return g_viewInfo.viewProjectionMatrix[elementIndex];
+    return g_viewProjectionMatrix[elementIndex/4][elementIndex%4];
 }
 
 extern "C" JNIEXPORT void JNICALL

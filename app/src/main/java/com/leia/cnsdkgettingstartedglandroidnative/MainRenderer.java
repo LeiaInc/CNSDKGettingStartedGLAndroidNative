@@ -20,9 +20,15 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private boolean      internalInitOk = false;
     private int[]        vao            = new int[1];
     private long         startTime      = 0;
-
-    private int windowWidth = 0;
-    private int windowHeight = 0;
+    private float        geometryDist   = 500.0f;
+    private Vector3      cameraPos      = new Vector3(0,0,0);
+    private Vector3      cameraDir      = new Vector3(0,1,0);
+    private Vector3      cameraUp       = new Vector3(0,0,1);
+    private float        fov            = 90.0f * 3.14159f / 180.0f;
+    private float        nearz          = 1.0f;
+    private float        farz           = 10000.0f;
+    private int          windowWidth    = 0;
+    private int          windowHeight   = 0;
 
     private final String vertexShaderCode =
             "#version 310 es\n" +
@@ -241,6 +247,9 @@ public class MainRenderer implements GLSurfaceView.Renderer {
             GLES30.glEnable(GLES30.GL_DEPTH_TEST);
             GLES30.glEnable(GLES30.GL_CULL_FACE);
 
+            // Set convergence distance to be exactly at the rendered cube.
+            activity.setConvergenceDistance(geometryDist);
+
             internalInitOk = true;
         }
 
@@ -280,20 +289,10 @@ public class MainRenderer implements GLSurfaceView.Renderer {
             elapsedTime = (float) (curTime - startTime) / 1000.0f;
         }
 
-        int     renderTarget        = activity.getRenderTargetForView(0);
-        int     renderTargetWidth   = activity.getViewWidth();
-        int     renderTargetHeight  = activity.getViewHeight();
-        float   geometryDist        = 500.0f;
-        Vector3 cameraPos           = new Vector3(0,0,0);
-        Vector3 cameraDir           = new Vector3(0,1,0);
-        Vector3 cameraUp            = new Vector3(0,0,1);
-        float   fov                 = 90.0f * 3.14159f / 180.0f;
-        float   aspectRatio         = (float)renderTargetWidth / (float)renderTargetHeight;
-        float   nearz               = 1.0f;
-        float   farz                = 10000.0f;
-
-        // Set convergence distance to be exactly at the rendered cube.
-        activity.setConvergenceDistance(geometryDist);
+        int   renderTarget        = activity.getRenderTargetForView(0);
+        int   renderTargetWidth   = activity.getViewWidth();
+        int   renderTargetHeight  = activity.getViewHeight();
+        float aspectRatio         = (float)renderTargetWidth / (float)renderTargetHeight;
 
         // Clear backbuffer to black
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
@@ -324,6 +323,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
         for (int viewIndex = 0; viewIndex < 2; viewIndex++)
         {
+            // Compute per-view values.
             activity.calculateConvergedPerspectiveViewInfo(
                     viewIndex,
                     cameraPos.x, cameraPos.y, cameraPos.z,
@@ -334,16 +334,19 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     nearz,
                     farz);
 
+            // Get the camera position for the current view.
             Vector3 viewCameraPos = new Vector3();
             viewCameraPos.x = activity.getConvergedPerspectiveViewPosition(0);
             viewCameraPos.y = activity.getConvergedPerspectiveViewPosition(1);
             viewCameraPos.z = activity.getConvergedPerspectiveViewPosition(2);
 
+            // Get the camera target for the current view.
             Vector3 viewTargetPos = new Vector3();
             viewTargetPos.x = viewCameraPos.x + cameraDir.x;
             viewTargetPos.y = viewCameraPos.y + cameraDir.y;
             viewTargetPos.z = viewCameraPos.z + cameraDir.z;
 
+            // Get thep rojection matrix for the current view.
             float viewProjectionMatrix[] = new float[16];
             for(int i=0; i<16; i++)
                 viewProjectionMatrix[i] = activity.getConvergedPerspectiveViewProjectionMatrix(i);
@@ -362,7 +365,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
             GLES30.glViewport(renderTargetWidth * viewIndex, 0, renderTargetWidth, renderTargetHeight);
             GLES30.glUseProgram(program);
             int tranformHandle = GLES30.glGetUniformLocation(program, "transform");
-            GLES30.glUniformMatrix4fv(tranformHandle, 1, false, FloatBuffer.wrap(mvp));// getFloatBuffer(mvp));
+            GLES30.glUniformMatrix4fv(tranformHandle, 1, false, FloatBuffer.wrap(mvp));
             GLES30.glBindVertexArray(vao[0]);
             GLES30.glEnableVertexAttribArray(0);
             GLES30.glEnableVertexAttribArray(1);
@@ -370,8 +373,10 @@ public class MainRenderer implements GLSurfaceView.Renderer {
             GLES30.glDrawElements(GLES30.GL_TRIANGLES, triangles * 3, GLES30.GL_UNSIGNED_SHORT, 0);
         }
 
+        // Restore previous viewport.
         GLES30.glViewport(Viewport.get(0), Viewport.get(1), Viewport.get(2), Viewport.get(3));
 
+        // Perform interlacing and sharpening.
         activity.doPostProcess(windowWidth, windowHeight);
     }
 
