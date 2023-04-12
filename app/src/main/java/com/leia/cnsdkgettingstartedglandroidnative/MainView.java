@@ -4,7 +4,6 @@ import android.content.Context;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
-import android.view.View;
 
 public class MainView extends GLSurfaceView {
 
@@ -25,7 +24,7 @@ public class MainView extends GLSurfaceView {
     }
 
     private void init() {
-        setEGLContextClientVersion(2);
+        setEGLContextClientVersion(3);
         setPreserveEGLContextOnPause(true);
     }
 
@@ -35,6 +34,7 @@ public class MainView extends GLSurfaceView {
             queueEvent(() -> mainActivity.processGuiMotionInput(event));
             return true;
         }
+
         return super.onTouchEvent(event);
     }
 }

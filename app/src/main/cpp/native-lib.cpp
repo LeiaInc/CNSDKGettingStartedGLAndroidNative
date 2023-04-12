@@ -214,6 +214,7 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_processGuiMotionIn
         g_interlacer->ProcessGuiMotionInput(env, motionEvent);
         return true;
     }
+
     return false;
 }
 
