@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
+import com.leia.core.Vector3;
 import com.leia.sdk.LeiaSDK;
 
 import com.leia.cnsdkgettingstartedglandroidnative.databinding.ActivityMainBinding;
@@ -37,4 +38,13 @@ public class MainActivity extends AppCompatActivity {
     public native boolean doGraphicsInit();
     public native int getRenderTargetForView(int viewIndex);
     public native void doPostProcess(int width, int height);
+    public native void calculateConvergedPerspectiveViewInfo(int viewIndex, float cameraPosX, float cameraPosY, float cameraPosZ,
+                                                       float cameraDirX, float cameraDirY, float cameraDirZ,
+                                                       float cameraUpX, float cameraUpY, float cameraUpZ,
+                                                       float fieldOfView,
+                                                       float aspectRatio,
+                                                       float nearPlane,
+                                                       float farPlane);
+    public native float getConvergedPerspectiveViewPosition(int elementIndex);
+    public native float getConvergedPerspectiveViewProjectionMatrix(int elementIndex);
 }

@@ -1,48 +1,45 @@
 package com.leia.cnsdkgettingstartedglandroidnative;
 
-import android.animation.IntArrayEvaluator;
-import android.app.Activity;
-import android.opengl.GLES20;
+import android.opengl.Matrix;
+import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 
-import com.leia.sdk.LeiaSDK;
+import com.leia.core.Vector3;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class MainRenderer implements GLSurfaceView.Renderer {
 
-    MainActivity activity = null;
-    private FloatBuffer vertexBuffer = null;
-    private int program = 0;
-    private boolean internalInitOk = false;
-
-    private final int vertexCount = 3;
-    private final int vertexStride = 3 * 4;// xyz * sizeof(float)
+    private MainActivity activity       = null;
+    private int          program        = 0;
+    private boolean      internalInitOk = false;
+    private int[]        vao            = new int[1];
+    private long         startTime      = 0;
 
     private final String vertexShaderCode =
-            "attribute vec4 vPosition;" +
-            "void main() {" +
-            "  gl_Position = vPosition;" +
+            "#version 310 es\n" +
+            "in vec3 inPos;\n" +
+            "in vec3 inColor;\n" +
+            "out vec3 color;\n" +
+            "uniform mat4 transform;\n" +
+            "void main() {\n" +
+            "  gl_Position = transform * vec4(inPos, 1.0);\n" +
+            "  color = inColor;\n" +
             "}";
 
     private final String fragmentShaderCode =
-            "precision mediump float;" +
-            "uniform vec4 vColor;" +
-            "void main() {" +
-            "  gl_FragColor = vColor;" +
+            "#version 310 es\n" +
+            "precision highp float;\n" +
+            "in vec3 color;\n" +
+            "out vec4 frag_color;\n" +
+            "void main() {\n" +
+            "    frag_color = vec4(color, 1.0);\n" +
             "}";
-
-    static float triangleCoords[] = { // todo: convert to cube once
-        0.0f,  0.5f, 0.0f, // top
-       -0.5f, -0.5f, 0.0f, // bottom left
-        0.5f, -0.5f, 0.0f  // bottom right
-    };
 
     MainRenderer(MainActivity activity) {
         this.activity = activity;
@@ -51,27 +48,195 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     boolean doInternalInit() {
 
         if (!internalInitOk) {
-            ByteBuffer bb = ByteBuffer.allocateDirect(triangleCoords.length * 4);
-            bb.order(ByteOrder.nativeOrder());
 
-            vertexBuffer = bb.asFloatBuffer();
-            vertexBuffer.put(triangleCoords);
-            vertexBuffer.position(0);
+            float cubeWidth  = 200.0f;
+            float cubeHeight = 200.0f;
+            float cubeDepth  = 200.0f;
 
-            int vertexShader = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER);
-            GLES20.glShaderSource(vertexShader, vertexShaderCode);
-            GLES20.glCompileShader(vertexShader);
+            float l = -cubeWidth / 2.0f;
+            float r = l + cubeWidth;
+            float b = -cubeHeight / 2.0f;
+            float t = b + cubeHeight;
+            float n = -cubeDepth / 2.0f;
+            float f = n + cubeDepth;
 
-            int fragmentShader = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER);
-            GLES20.glShaderSource(fragmentShader, fragmentShaderCode);
-            GLES20.glCompileShader(fragmentShader);
+            float cubeVerts[][] =
+            {
+                {l, n, b}, // Left Near Bottom
+                {l, f, b}, // Left Far Bottom
+                {r, f, b}, // Right Far Bottom
+                {r, n, b}, // Right Near Bottom
+                {l, n, t}, // Left Near Top
+                {l, f, t}, // Left Far Top
+                {r, f, t}, // Right Far Top
+                {r, n, t}  // Right Near Top
+            };
 
-            program = GLES20.glCreateProgram();
-            GLES20.glAttachShader(program, vertexShader);
-            GLES20.glAttachShader(program, fragmentShader);
-            GLES20.glLinkProgram(program);
-            GLES20.glDeleteShader(vertexShader);
-            GLES20.glDeleteShader(fragmentShader);
+            int faces[][] =
+            {
+                {0,1,2,3}, // bottom
+                {1,0,4,5}, // left
+                {0,3,7,4}, // front
+                {3,2,6,7}, // right
+                {2,1,5,6}, // back
+                {4,7,6,5}  // top
+            };
+
+            float faceColors[][] =
+            {
+                {1,0,0},
+                {0,1,0},
+                {0,0,1},
+                {1,1,0},
+                {0,1,1},
+                {1,0,1}
+            };
+
+            FloatBuffer verts = FloatBuffer.allocate(6*12);
+            FloatBuffer colors = FloatBuffer.allocate(6*12);
+            ShortBuffer indices= ShortBuffer.allocate(6*6);
+            for (int i = 0; i < 6; i++)
+            {
+                int i0 = faces[i][0];
+                int i1 = faces[i][1];
+                int i2 = faces[i][2];
+                int i3 = faces[i][3];
+
+                // Add indices.
+                int startIndex = (int)verts.position()/3;
+                indices.put((short)(startIndex + 0));
+                indices.put((short)(startIndex + 1));
+                indices.put((short)(startIndex + 2));
+                indices.put((short)(startIndex + 0));
+                indices.put((short)(startIndex + 2));
+                indices.put((short)(startIndex + 3));
+
+                verts.put(cubeVerts[i0][0]);
+                verts.put(cubeVerts[i0][1]);
+                verts.put(cubeVerts[i0][2]);
+
+                verts.put(cubeVerts[i1][0]);
+                verts.put(cubeVerts[i1][1]);
+                verts.put(cubeVerts[i1][2]);
+
+                verts.put(cubeVerts[i2][0]);
+                verts.put(cubeVerts[i2][1]);
+                verts.put(cubeVerts[i2][2]);
+
+                verts.put(cubeVerts[i3][0]);
+                verts.put(cubeVerts[i3][1]);
+                verts.put(cubeVerts[i3][2]);
+
+                colors.put(faceColors[i][0]);
+                colors.put(faceColors[i][1]);
+                colors.put(faceColors[i][2]);
+
+                colors.put(faceColors[i][0]);
+                colors.put(faceColors[i][1]);
+                colors.put(faceColors[i][2]);
+
+                colors.put(faceColors[i][0]);
+                colors.put(faceColors[i][1]);
+                colors.put(faceColors[i][2]);
+
+                colors.put(faceColors[i][0]);
+                colors.put(faceColors[i][1]);
+                colors.put(faceColors[i][2]);
+            }
+
+            indices.position(0);
+            verts.position(0);
+            colors.position(0);
+
+            int vertexPositionsAttributeIndex  = 0;
+            int vertexColorsAttributeIndex     = 1;
+
+            GLES30.glGenVertexArrays(1, IntBuffer.wrap(vao));
+            GLES30.glBindVertexArray(vao[0]);
+
+            // Create index buffer.
+            int[] indexBuffer = new int[1];
+            GLES30.glGenBuffers(1, IntBuffer.wrap(indexBuffer));
+            GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, indexBuffer[0]);
+            GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, indices.capacity() * 2, indices, GLES30.GL_STATIC_DRAW);
+
+            // Create vertex positions buffer.
+            int[] vertexPositionsBuffer = new int[1];
+            GLES30.glGenBuffers(1, IntBuffer.wrap(vertexPositionsBuffer));
+            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vertexPositionsBuffer[0]);
+            GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, verts.capacity() * 4, verts, GLES30.GL_STATIC_DRAW);
+            GLES30.glVertexAttribPointer(vertexPositionsAttributeIndex, 3, GLES30.GL_FLOAT, false, 0, 0);
+            GLES30.glEnableVertexAttribArray(vertexPositionsAttributeIndex);
+
+            // Create vertex colors buffer.
+            int[] vertexColorsBuffer = new int[1];
+            GLES30.glGenBuffers(1, IntBuffer.wrap(vertexColorsBuffer));
+            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vertexColorsBuffer[0]);
+            GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, colors.capacity() * 4, colors, GLES30.GL_STATIC_DRAW);
+            GLES30.glVertexAttribPointer(vertexColorsAttributeIndex, 3, GLES30.GL_FLOAT, false, 0, 0);
+            GLES30.glEnableVertexAttribArray(vertexColorsAttributeIndex);
+
+            // Unbind buffers
+            GLES30.glBindVertexArray(0);
+            GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
+            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
+
+            // Create vertex shader.
+            int vertexShader = GLES30.glCreateShader(GLES30.GL_VERTEX_SHADER);
+            GLES30.glShaderSource(vertexShader, vertexShaderCode);
+            GLES30.glCompileShader(vertexShader);
+
+            // Verify vertex shader compile succeeded.
+            {
+                int[] success = new int[1];
+                GLES30.glGetShaderiv(vertexShader, GLES30.GL_COMPILE_STATUS, IntBuffer.wrap(success));
+                if(success[0] == 0)
+                {
+                    String infoLog = GLES30.glGetShaderInfoLog(vertexShader);
+                    return false;
+                }
+            }
+
+            // Create fragment shader.
+            int fragmentShader = GLES30.glCreateShader(GLES30.GL_FRAGMENT_SHADER);
+            GLES30.glShaderSource(fragmentShader, fragmentShaderCode);
+            GLES30.glCompileShader(fragmentShader);
+
+            // Verify fragment shader compile succeeded.
+            {
+                int[] success = new int[1];
+                GLES30.glGetShaderiv(vertexShader, GLES30.GL_COMPILE_STATUS, IntBuffer.wrap(success));
+                if(success[0] == 0)
+                {
+                    String infoLog = GLES30.glGetShaderInfoLog(vertexShader);
+                    return false;
+                }
+            }
+
+            // Create program.
+            program = GLES30.glCreateProgram();
+            GLES30.glAttachShader(program, vertexShader);
+            GLES30.glAttachShader(program, fragmentShader);
+            GLES30.glLinkProgram(program);
+
+            // Verify program link succeeded.
+            {
+                int[] success = new int[1];
+                GLES30.glGetProgramiv(program, GLES30.GL_LINK_STATUS, IntBuffer.wrap(success));
+                if(success[0] == 0)
+                {
+                    String infoLog = GLES30.glGetProgramInfoLog(program);
+                    return false;
+                }
+            }
+
+            // Delete non-needed shaders since the program has them already.
+            GLES30.glDeleteShader(vertexShader);
+            GLES30.glDeleteShader(fragmentShader);
+
+            // Enable depth-test and face culling.
+            GLES30.glEnable(GLES30.GL_DEPTH_TEST);
+            GLES30.glEnable(GLES30.GL_CULL_FACE);
 
             internalInitOk = true;
         }
@@ -103,72 +268,102 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         if (!doDeferredInitialization())
             return;
 
-        // Render frame.
-        float green = (float)((System.currentTimeMillis() / 1000.0) % 1.0);
+        // Compute elapsed time.
+        float elapsedTime = 0;
+        {
+            long curTime = System.currentTimeMillis();
+            if (startTime == 0.0)
+                startTime = curTime;
+            elapsedTime = (float) (curTime - startTime) / 1000.0f;
+        }
 
-        int renderTarget = activity.getRenderTargetForView(0);
-        int renderTargetWidth = 1280; // todo: add JNI call to get this
-        int renderTargetHeight = 720; // todo: add JNI call to get this
-        int convergenceDistance = 500; // todo: add JNI call to get this
-        int windowWidth = 2560;
-        int windowHeight = 1600;
+        int     renderTarget        = activity.getRenderTargetForView(0);
+        int     renderTargetWidth   = 1280; // todo: add JNI call to get this
+        int     renderTargetHeight  = 720; // todo: add JNI call to get this
+        int     convergenceDistance = 500; // todo: add JNI call to get this
+        float   geometryDist        = 500.0f;
+        int     windowWidth         = 2560;
+        int     windowHeight        = 1600;
+        Vector3 cameraPos           = new Vector3(0,0,0);
+        Vector3 cameraDir           = new Vector3(0,1,0);
+        Vector3 cameraUp            = new Vector3(0,0,1);
+        float   fov                 = 90.0f * 3.14159f / 180.0f;
+        float   aspectRatio         = (float)renderTargetWidth / (float)renderTargetHeight;
+        float   nearz               = 1.0f;
+        float   farz                = 10000.0f;
 
         // Clear backbuffer to black
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
-        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
+        GLES30.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
         // Clear render-target to dark blue.
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, renderTarget);
-        GLES20.glClearColor(0.0f, 0.0f, 0.5f, 1.0f);
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, renderTarget);
+        GLES30.glClearColor(0.0f, 0.0f, 0.5f, 1.0f);
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
+        // Remember viewport values to restore them later.
         IntBuffer Viewport = IntBuffer.allocate(4);
-        GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, Viewport);
+        GLES30.glGetIntegerv(GLES30.GL_VIEWPORT, Viewport);
 
-		for (int viewIndex = 0; viewIndex < 2; viewIndex++)
-		{
-			// Get camera position and projection matrix.
-            /*
-            glm::vec3 cameraPos = glm::vec3(0,0,0);
-            glm::vec3 cameraFwd = glm::vec3(0,1,0);
-            glm::vec3 cameraUp = glm::vec3(0,0,1);
-            float FOV = 90.0f * 3.14159 / 180.0f;
-            float aspectRatio = (float)windowWidth / (float)windowHeight;
-            glm::vec3 viewPos;
-            glm::mat4 projectionPersp;
-            pLeiaInterlacer->GetConvergedPerspectiveViewInfo // todo: add JNI call for this
-            (
-                i,
-                cameraPos,
-                cameraFwd,
-                cameraUp,
-                glm::radians(FOV),
-                aspectRatio,
-                0.01f,
-                10000.0f,
-                &viewPos,
-                &projectionPersp
-            );
-            */
+        // Create geometry transform to rotate the cube and place it at specified distance.
+        float geometryTransform[] = new float[16];
+        {
+            Matrix.setRotateEulerM(geometryTransform, 0, 2.0f * elapsedTime, 4.0f * elapsedTime, 8.0f * elapsedTime);
+            geometryTransform[12] = 0;
+            geometryTransform[13] = geometryDist;
+            geometryTransform[14] = 0;
+        }
 
-            // todo: create translate matrix for geometry with convergenceDistance
-            // todo: compute final transform matrix and push into vertex shader input to do geometry transform
+        for (int viewIndex = 0; viewIndex < 2; viewIndex++)
+        {
+            activity.calculateConvergedPerspectiveViewInfo(
+                    viewIndex,
+                    cameraPos.x, cameraPos.y, cameraPos.z,
+                    cameraDir.x, cameraDir.y, cameraDir.z,
+                    cameraUp.x, cameraUp.y, cameraUp.z,
+                    fov,
+                    aspectRatio,
+                    nearz,
+                    farz);
+
+            Vector3 viewCameraPos = new Vector3();
+            viewCameraPos.x = activity.getConvergedPerspectiveViewPosition(0);
+            viewCameraPos.y = activity.getConvergedPerspectiveViewPosition(1);
+            viewCameraPos.z = activity.getConvergedPerspectiveViewPosition(2);
+
+            Vector3 viewTargetPos = new Vector3();
+            viewTargetPos.x = viewCameraPos.x + cameraDir.x;
+            viewTargetPos.y = viewCameraPos.y + cameraDir.y;
+            viewTargetPos.z = viewCameraPos.z + cameraDir.z;
+
+            float viewProjectionMatrix[] = new float[16];
+            for(int i=0; i<16; i++)
+                viewProjectionMatrix[i] = activity.getConvergedPerspectiveViewProjectionMatrix(i);
+
+            // Get camera transform.
+            float cameraTransform[] = new float[16];
+            Matrix.setLookAtM(cameraTransform, 0, viewCameraPos.x, viewCameraPos.y, viewCameraPos.z, viewTargetPos.x, viewTargetPos.y, viewTargetPos.z, cameraUp.x, cameraUp.y, cameraUp.z);
+
+            // Compute combined matrix.
+            float temp[] = new float[16];
+            float mvp[] = new float[16];
+            Matrix.multiplyMM(temp, 0, viewProjectionMatrix, 0, cameraTransform, 0);
+            Matrix.multiplyMM(mvp, 0, temp, 0, geometryTransform, 0);
 
             // Render view into left or right of render-target.
-            GLES20.glViewport(renderTargetWidth * viewIndex, 0, renderTargetWidth, renderTargetHeight);
-            GLES20.glUseProgram(program);
-            int positionHandle = GLES20.glGetAttribLocation(program, "vPosition");
-            GLES20.glEnableVertexAttribArray(positionHandle);
-            GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, vertexStride, vertexBuffer);
-            int colorHandle = GLES20.glGetUniformLocation(program, "vColor");
-            float triangleColor[] = { 1.0f, green, 0.0f, 1.0f };
-            GLES20.glUniform4fv(colorHandle, 1, triangleColor, 0);
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
-            GLES20.glDisableVertexAttribArray(positionHandle);
-		}
+            GLES30.glViewport(renderTargetWidth * viewIndex, 0, renderTargetWidth, renderTargetHeight);
+            GLES30.glUseProgram(program);
+            int tranformHandle = GLES30.glGetUniformLocation(program, "transform");
+            GLES30.glUniformMatrix4fv(tranformHandle, 1, false, FloatBuffer.wrap(mvp));// getFloatBuffer(mvp));
+            GLES30.glBindVertexArray(vao[0]);
+            GLES30.glEnableVertexAttribArray(0);
+            GLES30.glEnableVertexAttribArray(1);
+            int triangles = 6 * 2;
+            GLES30.glDrawElements(GLES30.GL_TRIANGLES, triangles * 3, GLES30.GL_UNSIGNED_SHORT, 0);
+        }
 
-        GLES20.glViewport(Viewport.get(0), Viewport.get(1), Viewport.get(2), Viewport.get(3));
+        GLES30.glViewport(Viewport.get(0), Viewport.get(1), Viewport.get(2), Viewport.get(3));
 
         activity.doPostProcess(windowWidth, windowHeight);
     }
