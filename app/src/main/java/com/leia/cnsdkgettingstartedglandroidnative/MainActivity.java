@@ -34,6 +34,12 @@ public class MainActivity extends AppCompatActivity {
         mainView.setRenderer(mainRenderer);
     }
 
+    @Override
+    public void onDestroy() {
+        doCNSDKShutdown();  // todo: not called???
+        super.onDestroy();
+    }
+
     public native boolean doCNSDKInit();
     public native boolean doGraphicsInit();
     public native int getRenderTargetForView(int viewIndex);
@@ -47,4 +53,10 @@ public class MainActivity extends AppCompatActivity {
                                                        float farPlane);
     public native float getConvergedPerspectiveViewPosition(int elementIndex);
     public native float getConvergedPerspectiveViewProjectionMatrix(int elementIndex);
+    public native void doCNSDKShutdown();
+    public native void setConvergenceDistance(float distance);
+    public native int getViewWidth();
+    public native int getViewHeight();
+
+
 }

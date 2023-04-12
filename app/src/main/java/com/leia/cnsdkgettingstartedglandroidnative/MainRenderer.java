@@ -21,6 +21,9 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private int[]        vao            = new int[1];
     private long         startTime      = 0;
 
+    private int windowWidth = 0;
+    private int windowHeight = 0;
+
     private final String vertexShaderCode =
             "#version 310 es\n" +
             "in vec3 inPos;\n" +
@@ -278,12 +281,9 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         }
 
         int     renderTarget        = activity.getRenderTargetForView(0);
-        int     renderTargetWidth   = 1280; // todo: add JNI call to get this
-        int     renderTargetHeight  = 720; // todo: add JNI call to get this
-        int     convergenceDistance = 500; // todo: add JNI call to get this
+        int     renderTargetWidth   = activity.getViewWidth();
+        int     renderTargetHeight  = activity.getViewHeight();
         float   geometryDist        = 500.0f;
-        int     windowWidth         = 2560;
-        int     windowHeight        = 1600;
         Vector3 cameraPos           = new Vector3(0,0,0);
         Vector3 cameraDir           = new Vector3(0,1,0);
         Vector3 cameraUp            = new Vector3(0,0,1);
@@ -291,6 +291,9 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         float   aspectRatio         = (float)renderTargetWidth / (float)renderTargetHeight;
         float   nearz               = 1.0f;
         float   farz                = 10000.0f;
+
+        // Set convergence distance to be exactly at the rendered cube.
+        activity.setConvergenceDistance(geometryDist);
 
         // Clear backbuffer to black
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
@@ -309,10 +312,14 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         // Create geometry transform to rotate the cube and place it at specified distance.
         float geometryTransform[] = new float[16];
         {
-            Matrix.setRotateEulerM(geometryTransform, 0, 2.0f * elapsedTime, 4.0f * elapsedTime, 8.0f * elapsedTime);
-            geometryTransform[12] = 0;
-            geometryTransform[13] = geometryDist;
-            geometryTransform[14] = 0;
+            float rotateMatrix[] = new float[16];
+            Matrix.setRotateEulerM(rotateMatrix, 0, 20.0f * elapsedTime, 0.0f * elapsedTime, 40.0f * elapsedTime);
+
+            float translateMatrix[] = new float[16];
+            Matrix.setIdentityM(translateMatrix, 0);
+            translateMatrix[13] = geometryDist;
+
+            Matrix.multiplyMM(geometryTransform, 0, translateMatrix, 0, rotateMatrix, 0);
         }
 
         for (int viewIndex = 0; viewIndex < 2; viewIndex++)
@@ -374,5 +381,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
+        windowWidth = width;
+        windowHeight = height;
     }
 }

@@ -22,6 +22,9 @@ leia::sdk::IThreadedInterlacer* g_interlacer       = nullptr;
 bool                            g_isCNSDKInitOk    = false;
 bool                            g_isGraphicsInitOk = false;
 ViewInfo                        g_viewInfo         = {};
+int                             g_viewWidth        = 0;
+int                             g_viewHeight       = 0;
+bool                            g_showGUI          = true;
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doCNSDKInit(
@@ -48,6 +51,10 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doCNSDKInit(
         tiia.useMegaTextureForViews = true;
         g_interlacer = g_sdk->CreateNewThreadedInterlacer(tiia);
 
+        g_sdk->SetBacklight(true);
+
+        g_interlacer->SetBaselineScaling(20.0f);
+
         // CNSDK initialization is complete.
         g_isCNSDKInitOk = true;
     }
@@ -68,6 +75,13 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doGraphicsInit(
 
             // Initialize graphics.
             g_interlacer->InitializeOpenGL(nullptr, leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK);
+
+            // Initialize interlacer GUI.
+            if (g_showGUI)
+            {
+                leia::sdk::DebugMenuInitArgs debugMenuInitArgs;
+                g_interlacer->InitializeGui(debugMenuInitArgs);
+            }
 
             // Graphics initialization complete.
             g_isGraphicsInitOk = true;
@@ -153,4 +167,39 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getConvergedPerspe
         int elementIndex)
 {
     return g_viewInfo.viewProjectionMatrix[elementIndex];
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doCNSDKShutdown(
+        JNIEnv* env,
+        jobject activity)
+{
+    delete g_interlacer;
+    g_sdk->SetBacklight(false);
+    g_sdk->Destroy();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_setConvergenceDistance(
+        JNIEnv* env,
+        jobject activity,
+        float distance)
+{
+    g_interlacer->SetConvergenceDistance(distance);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getViewWidth(
+        JNIEnv* env,
+        jobject activity)
+{
+    return g_sdk->GetViewWidth();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getViewHeight(
+        JNIEnv* env,
+        jobject activity)
+{
+    return g_sdk->GetViewHeight();
 }
