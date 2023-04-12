@@ -3,6 +3,7 @@ package com.leia.cnsdkgettingstartedglandroidnative;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.widget.TextView;
 
 import com.leia.core.Vector3;
@@ -32,11 +33,12 @@ public class MainActivity extends AppCompatActivity {
 
         mainView = (MainView) findViewById(R.id.mainView);
         mainView.setRenderer(mainRenderer);
+        mainView.setActivity(this);
     }
 
     @Override
     public void onDestroy() {
-        doCNSDKShutdown();  // todo: not called???
+        doCNSDKShutdown();
         super.onDestroy();
     }
 
@@ -57,6 +59,5 @@ public class MainActivity extends AppCompatActivity {
     public native void setConvergenceDistance(float distance);
     public native int getViewWidth();
     public native int getViewHeight();
-
-
+    public native boolean processGuiMotionInput(MotionEvent motionEvent);
 }

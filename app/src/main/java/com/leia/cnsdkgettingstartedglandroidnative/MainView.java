@@ -3,8 +3,12 @@ package com.leia.cnsdkgettingstartedglandroidnative;
 import android.content.Context;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.View;
 
 public class MainView extends GLSurfaceView {
+
+    MainActivity mainActivity = null;
 
     public MainView(Context context){
         super(context);
@@ -16,8 +20,19 @@ public class MainView extends GLSurfaceView {
         init();
     }
 
+    public void setActivity(MainActivity ma){
+        mainActivity = ma;
+    }
+
     private void init() {
         setEGLContextClientVersion(2);
         setPreserveEGLContextOnPause(true);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (mainActivity.processGuiMotionInput(event)) // invalid thread.
+            return true;
+        return super.onTouchEvent(event);
     }
 }

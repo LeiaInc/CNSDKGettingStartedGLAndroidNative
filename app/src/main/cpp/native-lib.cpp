@@ -203,3 +203,16 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getViewHeight(
 {
     return g_sdk->GetViewHeight();
 }
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_processGuiMotionInput(
+        JNIEnv* env,
+        jobject activity,
+        jobject motionEvent)
+{
+    if (g_interlacer->IsGuiVisible()) {
+        g_interlacer->ProcessGuiMotionInput(env, motionEvent);
+        return true;
+    }
+    return false;
+}
