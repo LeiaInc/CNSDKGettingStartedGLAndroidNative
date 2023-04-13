@@ -346,9 +346,9 @@ public class MainRenderer implements GLSurfaceView.Renderer {
             viewTargetPos.y = viewCameraPos.y + cameraDir.y;
             viewTargetPos.z = viewCameraPos.z + cameraDir.z;
 
-            // Get thep rojection matrix for the current view.
+            // Get the projection matrix for the current view.
             float viewProjectionMatrix[] = new float[16];
-            for(int i=0; i<16; i++)
+            for (int i=0; i<16; i++)
                 viewProjectionMatrix[i] = activity.getConvergedPerspectiveViewProjectionMatrix(i);
 
             // Get camera transform.
