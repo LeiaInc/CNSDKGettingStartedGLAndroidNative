@@ -225,7 +225,7 @@ public native boolean isGuiVisible();
 ```
 
 ### MainView.java
-This class represents a visible surface we can display. Our implementation does little more than simple initialization and handling user touch events to driver the (optional) CNSDK debug menu.
+This class represents a visible surface we can display. Our implementation does little more than simple initialization and handling user touch events to drive the (optional) CNSDK debug menu.
 The class has two constructors that call a common initialization function:
 ```
 public MainView(Context context){
