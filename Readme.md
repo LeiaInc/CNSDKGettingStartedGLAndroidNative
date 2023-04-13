@@ -54,7 +54,7 @@ dependencies {
 
 Once setup, your project should look like this:
 
-![alt text](https://github.com/LeiaInc/CNSDKGettingStartedGLAndroid/blob/main/ReadmeFiles/Screen%20Shot%202023-03-15%20at%203.59.58%20PM.png)
+![alt text](https://github.com/LeiaInc/CNSDKGettingStartedGLAndroidNative/blob/main/ReadmeFiles/Project.png)
 
 
 ## Project Implementation
