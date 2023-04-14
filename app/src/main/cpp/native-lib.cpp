@@ -158,9 +158,18 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doCNSDKShutdown(
         JNIEnv* env,
         jobject activity)
 {
-    delete g_interlacer;
-    g_sdk->SetBacklight(false);
-    g_sdk->Destroy();
+    if (g_isCNSDKInitOk) {
+        g_isCNSDKInitOk = false;
+
+        g_sdk->Destroy(g_interlacer);
+        g_interlacer = nullptr;
+
+        g_sdk->SetBacklight(false);
+
+        g_sdk->Shutdown();
+        g_sdk->Destroy();
+        g_sdk = nullptr;
+    }
 }
 
 extern "C" JNIEXPORT void JNICALL
