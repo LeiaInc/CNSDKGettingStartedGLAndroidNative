@@ -6,22 +6,27 @@ plugins {
 
 project.ext {
     cnsdkArchive = "cnsdk-android-${project.cnsdkVersion}.zip"
+
+    cnsdkArchiveFile = new File(cnsdkArchive)
+    if (!cnsdkArchiveFile.exists()) {
+        def cnsdkUrl = "https://github.com/LeiaInc/leiainc.github.io/raw/master/CNSDK/cnsdk-android-${project.cnsdkVersion}.zip"
+        new URL(cnsdkUrl).withInputStream{ i -> cnsdkArchiveFile.withOutputStream{ it << i }}
+    } else {
+        println("CNSDK archive is already downloaded")
+    }
+
     cnsdkPath = "${project.buildDir}/cnsdk"
     println("cnsdkPath: ${cnsdkPath}")
-    // CNSDK is distributed as an archive
+
     copy {
-        from zipTree("cnsdk-android-${project.cnsdkVersion}.zip")
+        from zipTree(cnsdkArchive)
         include 'android/**/*'
         include 'include/**/*'
+        include 'lib/**/*'
+        include 'share/**/*'
         into "${cnsdkPath}"
     }
-    // Native samples link to shared libraries from CNSDK aar
-    cnsdkAar = "${cnsdkPath}/android/sdk-faceTrackingService-release-${project.cnsdkVersion}.aar"
-    copy {
-        from zipTree(cnsdkAar)
-        include 'jni/*/*.so'
-        into "${cnsdkPath}/lib"
-    }
+    cnsdkAar = "${cnsdkPath}/android/sdk-faceTrackingService-${project.cnsdkVersion}.aar"
 }
 
 task clean(type: Delete) {

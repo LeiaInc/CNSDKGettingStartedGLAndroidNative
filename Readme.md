@@ -49,7 +49,7 @@ project.ext {
         into "${cnsdkPath}"
     }
     // Native samples link to shared libraries from CNSDK aar
-    cnsdkAar = "${cnsdkPath}/android/sdk-faceTrackingService-release-${project.cnsdkVersion}.aar"
+    cnsdkAar = "${cnsdkPath}/android/sdk-faceTrackingService-${project.cnsdkVersion}.aar"
     copy {
         from zipTree(cnsdkAar)
         include 'jni/*/*.so'
