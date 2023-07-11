@@ -28,13 +28,9 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doCNSDKInit(
     if (!g_isCNSDKInitOk) {
 
         // Create SDK.
-        {
-            leia::sdk::CoreInitConfiguration config;
-            config.SetPlatformAndroidHandle(LEIA_CORE_ANDROID_HANDLE_ACTIVITY, activity);
-            g_cnsdk = new leia::sdk::Core(config);
-        }
-
-        g_cnsdk->SetBacklight(true);
+        leia::sdk::CoreInitConfiguration config;
+        config.SetPlatformAndroidHandle(LEIA_CORE_ANDROID_HANDLE_ACTIVITY, activity);
+        g_cnsdk = new leia::sdk::Core(config);
 
         // CNSDK initialization is complete.
         g_isCNSDKInitOk = true;
@@ -72,6 +68,8 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_doGraphicsInit(
                 g_viewHeight = deviceConfig->viewResolution[1];
                 g_cnsdk->ReleaseDeviceConfig(deviceConfig);
             }
+
+            g_cnsdk->SetBacklight(true);
 
             // Graphics initialization complete.
             g_isGraphicsInitOk = true;

@@ -1,11 +1,5 @@
 # Leia CNSDK For Android Java Activity Applications
 
-## Requirements
-Lume Pad 2 device with:
-
-* [Display Config Service v0.1.0231.apk](https://drive.google.com/file/d/1oAsbjSmQ6gkDQ85HVxV3-ZL4wbvI0_gp/view) installed
-* [Head Tracking Service v0.6.154.apk](https://drive.google.com/file/d/1Ixr3rBLaRdiTM6PZAbhapjq12GBM2nXd/view) installed
-
 ## Purpose
 Provide a tutorial that shows how to create a lightfield application in Java using JNI to access the Leia CNSDK.
 
@@ -18,7 +12,7 @@ While not absolutely required, the CNSDK will allow you to harness the ability o
 
 The CNSDK provides the following mechanisms to access functionality depending on your situation:
 
-1. For Windows C++ applications, use classes `ILeiaSDK` and `IThreadedInterlacer`.
+1. For Windows C++ applications, use classes `leia::sdk::Core` and `leia::sdk::Interlacer`.
 2. For simple Android Java applications, use Leia-provided Java classes such as `LeiaSDK`, `InterlacedSurfaceView`, and `InputViewsAsset`.
 3. For advanced Android Java applications, use Java JNI to access C++ classes directly.
 
@@ -39,22 +33,24 @@ To create a project with a similar structure to the provided example, follow the
 ```
 project.ext {
     cnsdkArchive = "cnsdk-android-${project.cnsdkVersion}.zip"
+    cnsdkArchiveFile = new File(cnsdkArchive)
+    if (!cnsdkArchiveFile.exists()) {
+        def cnsdkUrl = "https://github.com/LeiaInc/leiainc.github.io/raw/master/CNSDK/cnsdk-android-${project.cnsdkVersion}.zip"
+        new URL(cnsdkUrl).withInputStream{ i -> cnsdkArchiveFile.withOutputStream{ it << i }}
+    } else {
+        println("CNSDK archive is already downloaded")
+    }
     cnsdkPath = "${project.buildDir}/cnsdk"
     println("cnsdkPath: ${cnsdkPath}")
-    // CNSDK is distributed as an archive
     copy {
-        from zipTree("cnsdk-android-${project.cnsdkVersion}.zip")
+        from zipTree(cnsdkArchive)
         include 'android/**/*'
         include 'include/**/*'
+        include 'lib/**/*'
+        include 'share/**/*'
         into "${cnsdkPath}"
     }
-    // Native samples link to shared libraries from CNSDK aar
     cnsdkAar = "${cnsdkPath}/android/sdk-faceTrackingService-${project.cnsdkVersion}.aar"
-    copy {
-        from zipTree(cnsdkAar)
-        include 'jni/*/*.so'
-        into "${cnsdkPath}/lib"
-    }
 }
 ```
 3.	Add empty MainActivity.java file and modify AndroidManifest.xml to include the activity. The activity block in the manifest file should look similar to the block below:
@@ -121,23 +117,9 @@ public class MainView extends GLSurfaceView {
 cmake_minimum_required(VERSION 3.18.1)
 project("cnsdkgettingstartedglandroidnative")
 add_library(cnsdkgettingstartedglandroidnative SHARED native-lib.cpp)
-find_library(log-lib log)
-target_link_libraries(
-        cnsdkgettingstartedglandroidnative
-        PRIVATE
-
-        # link to CNSDK library
-        "${CNSDK_DIR}/lib/jni/${CMAKE_ANDROID_ARCH_ABI}/libleiaSDK.so"
-
-        # Link to logging library
-        ${log-lib})
-
-# Set Leia CNSDK include directories.
-target_include_directories(
-        cnsdkgettingstartedglandroidnative
-        PRIVATE
-        "${CNSDK_DIR}/include"
-        "${CNSDK_DIR}/include/third_party")
+find_package(CNSDK CONFIG REQUIRED)
+target_link_libraries(cnsdkgettingstartedglandroidnative PRIVATE
+    CNSDK::leiaSDK)
 ```
 9.	Once setup, your project should look like this:
 
@@ -362,53 +344,45 @@ activity.doPostProcess(windowWidth, windowHeight);
 
 ### Native-lib.cpp
 This class is where all the CNSDK-related logic is performed. The 13 methods declared in MainActivity.java are implemented here. Most methods are trivial trampoline methods that simply call into CNSDK. Only two methods, `doCNSDKInit()` and `doGraphicsInit()` have any significant logic.
-In `doCNSDKInit()`, we initialize CNSDK, create an interlacer, enable the backlight and set an initial baseline scaling value:
+In `doCNSDKInit()`, we initialize CNSDK:
 ```
 // If the CNSDK hasn't been initialized yet.
 if (!g_isCNSDKInitOk) {
-
     // Create SDK.
-    g_sdk = leia::sdk::CreateLeiaSDK();
-
-    // Initialize Platform.
-    leia::PlatformInitArgs pia = {};
-    pia.androidActivity = activity;
-    g_sdk->InitializePlatform(pia);
-
-    // Initialize SDK.
-    g_sdk->Initialize(nullptr);
-
-    // Create interlacer.
-    leia::sdk::ThreadedInterlacerInitArgs tiia = {};
-    tiia.graphicsAPI = leia::sdk::GraphicsAPI::OpenGL;
-    tiia.useMegaTextureForViews = true;
-    g_interlacer = g_sdk->CreateNewThreadedInterlacer(tiia);
-
-    g_sdk->SetBacklight(true);
-
-    g_interlacer->SetBaselineScaling(20.0f);
+    leia::sdk::CoreInitConfiguration config;
+    config.SetPlatformAndroidHandle(LEIA_CORE_ANDROID_HANDLE_ACTIVITY, activity);
+    g_cnsdk = new leia::sdk::Core(config);
 
     // CNSDK initialization is complete.
     g_isCNSDKInitOk = true;
 }
 ```
-In `doGraphicsInit()`, we initialize the interlacer that was previously created and optionally enable the CNSDK debug menu:
+In `doGraphicsInit()`, we create an interlacer, set an initial baseline scaling value, enable the backlight, and optionally enable the CNSDK debug menu:
 ```
 // If we havn't initialized the graphics yet.
 if (!g_isGraphicsInitOk) {
-
     // Wait for CNSDK to be initialized.
-    if (g_sdk->IsInitialized()) {
-
-        // Initialize graphics.
-        g_interlacer->InitializeOpenGL(nullptr, leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK,leia::sdk::eLeiaTaskResponsibility::SDK);
+    if (g_cnsdk->IsInitialized()) {
+        // Create interlacer.
+        leia::sdk::InterlacerInitConfiguration config;
+        config.SetUseAtlasForViews(true);
+        g_interlacer = new leia::sdk::InterlacerOpenGL(*g_cnsdk, config, nullptr);
+        g_interlacer->SetBaselineScaling(20.0f);
 
         // Initialize interlacer GUI.
         if (g_showGUI)
         {
-            leia::sdk::DebugMenuInitArgs debugMenuInitArgs;
-            g_interlacer->InitializeGui(debugMenuInitArgs);
+            leia_interlacer_debug_menu_configuration guiConfig = {};
+            g_interlacer->InitializeGui(&guiConfig);
         }
+
+        if (leia::device::Config* deviceConfig = g_cnsdk->GetDeviceConfig()) {
+            g_viewWidth = deviceConfig->viewResolution[0];
+            g_viewHeight = deviceConfig->viewResolution[1];
+            g_cnsdk->ReleaseDeviceConfig(deviceConfig);
+        }
+
+        g_cnsdk->SetBacklight(true);
 
         // Graphics initialization complete.
         g_isGraphicsInitOk = true;
