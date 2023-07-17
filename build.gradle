@@ -9,22 +9,24 @@ project.ext {
 
     cnsdkArchiveFile = new File(cnsdkArchive)
     if (!cnsdkArchiveFile.exists()) {
+        println("Download CNSDK archive...")
         def cnsdkUrl = "https://github.com/LeiaInc/leiainc.github.io/raw/master/CNSDK/cnsdk-android-${project.cnsdkVersion}.zip"
         new URL(cnsdkUrl).withInputStream{ i -> cnsdkArchiveFile.withOutputStream{ it << i }}
+        println("Downloaded CNSDK archive")
     } else {
         println("CNSDK archive is already downloaded")
     }
 
-    cnsdkPath = "${project.buildDir}/cnsdk"
+    cnsdkPath = (new File(project.buildDir, "cnsdk-android-${project.cnsdkVersion}")).path
     println("cnsdkPath: ${cnsdkPath}")
 
     copy {
         from zipTree(cnsdkArchive)
-        include 'android/**/*'
-        include 'include/**/*'
-        include 'lib/**/*'
-        include 'share/**/*'
-        into "${cnsdkPath}"
+        include '*/android/**/*'
+        include '*/include/**/*'
+        include '*/lib/**/*'
+        include '*/share/**/*'
+        into project.buildDir
     }
     cnsdkAar = "${cnsdkPath}/android/sdk-faceTrackingService-${project.cnsdkVersion}.aar"
 }
