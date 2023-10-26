@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
 
     public native boolean doCNSDKInit();
     public native boolean doGraphicsInit();
-    public native int getRenderTargetForView(int viewIndex);
+    public native void setRenderTargets(int viewsTexture, int viewsTextureWidth, int viewsTextureHeight, int outputFramebuffer);
     public native void doPostProcess(int width, int height);
     public native void calculateConvergedPerspectiveViewInfo(
         int viewIndex,

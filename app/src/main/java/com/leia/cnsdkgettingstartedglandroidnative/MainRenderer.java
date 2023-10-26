@@ -29,6 +29,11 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private float        farz           = 10000.0f;
     private int          windowWidth    = 0;
     private int          windowHeight   = 0;
+    private int[]        viewsFrameBuffer = new int[1];
+    private int[]        viewsColorTexture = new int[1];
+    private int[]        viewsDepthTexture = new int[1];
+    private int          viewsTextureWidth = 0;
+    private int          viewsTextureHeight = 0;
 
     private final String vertexShaderCode =
             "#version 310 es\n" +
@@ -247,6 +252,45 @@ public class MainRenderer implements GLSurfaceView.Renderer {
             GLES30.glEnable(GLES30.GL_DEPTH_TEST);
             GLES30.glEnable(GLES30.GL_CULL_FACE);
 
+            // Create views framebuffer
+            {
+                GLES30.glGenFramebuffers(1, viewsFrameBuffer, 0);
+                GLES30.glGenTextures(1, viewsColorTexture, 0);
+                GLES30.glGenTextures(1, viewsDepthTexture, 0);
+
+                IntBuffer currentFramebuffer = IntBuffer.allocate(1);
+                GLES30.glGetIntegerv(GLES30.GL_FRAMEBUFFER_BINDING, currentFramebuffer);
+
+                viewsTextureWidth  = activity.getViewWidth() * 2;
+                viewsTextureHeight = activity.getViewHeight();
+
+                // Initialize and attach textures to framebuffer
+                int i = 0;
+
+                // Bind to current framebuffer.
+                GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, viewsFrameBuffer[i]);
+
+                // Create view color texture and attach it to the current framebuffer.
+                GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, viewsColorTexture[i]);
+                GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, viewsTextureWidth, viewsTextureHeight, 0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, null);
+                GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR);
+                GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR);
+                GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
+                GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
+                GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0, GLES30.GL_TEXTURE_2D, viewsColorTexture[i], 0);
+
+                // Create view depth texture and attach it to the current framebuffer.
+                GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, viewsDepthTexture[i]);
+                GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_DEPTH_COMPONENT32F, viewsTextureWidth, viewsTextureHeight, 0, GLES30.GL_DEPTH_COMPONENT, GLES30.GL_FLOAT, null);
+                GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR);
+                GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR);
+                GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_ATTACHMENT, GLES30.GL_TEXTURE_2D, viewsDepthTexture[i], 0);
+
+                GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, currentFramebuffer.get(0));
+
+                activity.setRenderTargets(viewsColorTexture[0], viewsTextureWidth, viewsTextureHeight, currentFramebuffer.get(0));
+            }
+
             // Set convergence distance to be exactly at the rendered cube.
             activity.setConvergenceDistance(geometryDist);
 
@@ -289,9 +333,8 @@ public class MainRenderer implements GLSurfaceView.Renderer {
             elapsedTime = (float) (curTime - startTime) / 1000.0f;
         }
 
-        int   renderTarget        = activity.getRenderTargetForView(0);
-        int   renderTargetWidth   = activity.getViewWidth();
-        int   renderTargetHeight  = activity.getViewHeight();
+        int   renderTargetWidth   = viewsTextureWidth / 2;
+        int   renderTargetHeight  = viewsTextureHeight;
         float aspectRatio         = (float)renderTargetWidth / (float)renderTargetHeight;
 
         // Clear backbuffer to black
@@ -299,8 +342,8 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         GLES30.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
-        // Clear render-target to dark blue.
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, renderTarget);
+        // Clear views texture to dark blue.
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, viewsFrameBuffer[0]);
         GLES30.glClearColor(0.0f, 0.0f, 0.5f, 1.0f);
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 

@@ -5,29 +5,39 @@ plugins {
 }
 
 project.ext {
-    cnsdkArchive = "cnsdk-android-${project.cnsdkVersion}.zip"
+    cnsdkPath = project.getProperties().get("cnsdk")
+    if (cnsdkPath == null) {
+        cnsdkArchive = "cnsdk-android-${project.cnsdkVersion}.zip"
 
-    cnsdkArchiveFile = new File(cnsdkArchive)
-    if (!cnsdkArchiveFile.exists()) {
-        println("Download CNSDK archive...")
-        def cnsdkUrl = "https://github.com/LeiaInc/leiainc.github.io/raw/master/CNSDK/cnsdk-android-${project.cnsdkVersion}.zip"
-        new URL(cnsdkUrl).withInputStream{ i -> cnsdkArchiveFile.withOutputStream{ it << i }}
-        println("Downloaded CNSDK archive")
+        cnsdkArchiveFile = new File(cnsdkArchive)
+        if (!cnsdkArchiveFile.exists()) {
+            println("Download CNSDK archive...")
+            def cnsdkUrl = "https://github.com/LeiaInc/leiainc.github.io/raw/master/CNSDK/cnsdk-android-${project.cnsdkVersion}.zip"
+            new URL(cnsdkUrl).withInputStream{ i -> cnsdkArchiveFile.withOutputStream{ it << i }}
+            println("Downloaded CNSDK archive")
+        } else {
+            println("CNSDK archive is already downloaded")
+        }
+
+        cnsdkPath = (new File(project.buildDir, "cnsdk-android-${project.cnsdkVersion}")).path
+
+        copy {
+            from zipTree(cnsdkArchive)
+            include '*/android/**/*'
+            include '*/include/**/*'
+            include '*/lib/**/*'
+            include '*/share/**/*'
+            into project.buildDir
+        }
     } else {
-        println("CNSDK archive is already downloaded")
+        if (!(new File(cnsdkPath)).isAbsolute()) {
+            cnsdkPath = (new File(rootProject.projectDir, cnsdkPath)).getAbsolutePath()
+        }
+        project.cnsdkVersion = rootProject.file(new File(cnsdkPath, "VERSION.txt")).text
     }
 
-    cnsdkPath = (new File(project.buildDir, "cnsdk-android-${project.cnsdkVersion}")).path
     println("cnsdkPath: ${cnsdkPath}")
-
-    copy {
-        from zipTree(cnsdkArchive)
-        include '*/android/**/*'
-        include '*/include/**/*'
-        include '*/lib/**/*'
-        include '*/share/**/*'
-        into project.buildDir
-    }
+    println("cnsdkVersion: ${cnsdkVersion}")
     cnsdkAar = "${cnsdkPath}/android/sdk-faceTrackingService-${project.cnsdkVersion}.aar"
 }
 

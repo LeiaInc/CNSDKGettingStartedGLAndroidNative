@@ -6,4 +6,6 @@ add_library(cnsdkgettingstartedglandroidnative SHARED native-lib.cpp)
 
 find_package(CNSDK CONFIG REQUIRED)
 
-target_link_libraries(cnsdkgettingstartedglandroidnative PRIVATE CNSDK::leiaSDK)
+target_link_libraries(cnsdkgettingstartedglandroidnative PRIVATE
+    CNSDK::leiaCore
+    log)
