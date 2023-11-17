@@ -21,6 +21,8 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private int[]        vao            = new int[1];
     private long         startTime      = 0;
     private float        geometryDist   = 500.0f;
+    private float        baseline       = 20.0f;
+    private float        cubeSize       = 200.0f;
     private Vector3      cameraPos      = new Vector3(0,0,0);
     private Vector3      cameraDir      = new Vector3(0,1,0);
     private Vector3      cameraUp       = new Vector3(0,0,1);
@@ -58,16 +60,12 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
         if (!internalInitOk) {
 
-            float cubeWidth  = 200.0f;
-            float cubeHeight = 200.0f;
-            float cubeDepth  = 200.0f;
-
-            float l = -cubeWidth / 2.0f;
-            float r = l + cubeWidth;
-            float b = -cubeHeight / 2.0f;
-            float t = b + cubeHeight;
-            float n = -cubeDepth / 2.0f;
-            float f = n + cubeDepth;
+            float l = -cubeSize  / 2.0f;
+            float r = l + cubeSize;
+            float b = -cubeSize / 2.0f;
+            float t = b + cubeSize;
+            float n = -cubeSize / 2.0f;
+            float f = n + cubeSize;
 
             float cubeVerts[][] =
             {
@@ -249,6 +247,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
             // Set convergence distance to be exactly at the rendered cube.
             activity.setConvergenceDistance(geometryDist);
+            activity.setBaselineScaling(baseline);
 
             internalInitOk = true;
         }
@@ -333,6 +332,14 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     aspectRatio,
                     nearz,
                     farz);
+
+            // Check we are within the comfort zone.
+            /*float comfortNear = activity.getViewComfortZoneNear(nearz, farz);
+            float comfortFar = activity.getViewComfortZoneFar(nearz, farz);
+            float minGeomDist = geometryDist - cubeSize/2.0f;
+            float maxGeomDist = geometryDist + cubeSize/2.0f;
+            assert(minGeomDist >= comfortNear);
+            assert(maxGeomDist <= comfortFar);*/
 
             // Get the camera position for the current view.
             Vector3 viewCameraPos = new Vector3();

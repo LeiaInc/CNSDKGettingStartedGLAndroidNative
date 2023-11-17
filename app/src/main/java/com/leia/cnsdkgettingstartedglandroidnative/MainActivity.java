@@ -53,6 +53,9 @@ public class MainActivity extends AppCompatActivity {
     public native boolean doGraphicsInit();
     public native int getRenderTargetForView(int viewIndex);
     public native void doPostProcess(int width, int height);
+    public native void setBaselineScaling(float baseline);
+    public native float getViewComfortZoneNear(float frustumNearPlane, float frustumFarPlane);
+    public native float getViewComfortZoneFar(float frustumNearPlane, float frustumFarPlane);
     public native void calculateConvergedPerspectiveViewInfo(
         int viewIndex,
         float cameraPosX, float cameraPosY, float cameraPosZ,

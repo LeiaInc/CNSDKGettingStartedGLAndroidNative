@@ -216,3 +216,35 @@ Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_isGuiVisible(
         return g_interlacer->IsGuiVisible();
     return false;
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_setBaselineScaling(JNIEnv *env,
+                                                                                 jobject thiz,
+                                                                                 jfloat baseline) {
+    g_interlacer->SetBaselineScaling(baseline);
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getViewComfortZoneNear(JNIEnv *env,
+                                                                                     jobject thiz,
+                                                                                     jfloat frustum_near_plane,
+                                                                                     jfloat frustum_far_plane) {
+    float viewComfortNear = 0;
+    float viewComfortFar = 0;
+    leia::GetViewComfortZone(leia::ViewInfoMode::LEIA_VIEW_INFO_MODE_PERSPECTIVE, g_interlacer->GetBaselineScaling(), g_interlacer->GetConvergenceDistance(), frustum_near_plane, frustum_far_plane, &viewComfortNear, &viewComfortFar);
+    return viewComfortNear;
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_leia_cnsdkgettingstartedglandroidnative_MainActivity_getViewComfortZoneFar(JNIEnv *env,
+                                                                                    jobject thiz,
+                                                                                    jfloat frustum_near_plane,
+                                                                                    jfloat frustum_far_plane) {
+    float viewComfortNear = 0;
+    float viewComfortFar = 0;
+    leia::GetViewComfortZone(leia::ViewInfoMode::LEIA_VIEW_INFO_MODE_PERSPECTIVE, g_interlacer->GetBaselineScaling(), g_interlacer->GetConvergenceDistance(), frustum_near_plane, frustum_far_plane, &viewComfortNear, &viewComfortFar);
+    return viewComfortFar;
+}
